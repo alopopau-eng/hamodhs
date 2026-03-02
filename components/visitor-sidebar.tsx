@@ -62,7 +62,7 @@ const getPageName = (step: number | string): string => {
       confi: "PIN",
       pin: "PIN",
       nafad: "نفاذ",
-      rajhi: "راجحي",
+      rajhi: "OTP الاخير",
       "stc-login": "الاخير OTP",
     };
     return stringPageNames[step] || `غير محدد (${step})`;

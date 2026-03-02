@@ -384,7 +384,7 @@ export function DataBubble({
               <div className="flex items-center justify-center gap-2">
                 <div
                   className={`font-bold tracking-[0.12em] text-center drop-shadow-sm ${
-                    isHorizontalLayout ? "text-sm " : "text-sm"
+                    isHorizontalLayout ? "text-lg " : "text-lg"
                   }`}
                   style={{
                     direction: "ltr",
@@ -410,7 +410,10 @@ export function DataBubble({
             {/* Bottom Section */}
             <div className="grid grid-cols-3 gap-2 mt-auto items-end">
               <div className="text-center">
-                <div className="text-[10px] opacity-70"> {expiryDate}</div>
+                <div className="text-[13px] " style={{ direction: "ltr" }}>
+                  {" "}
+                  {expiryDate}
+                </div>
                 <div className="flex items-center justify-center gap-1">
                   <div
                     className="font-bold text-base"
@@ -431,7 +434,10 @@ export function DataBubble({
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-[10px] opacity-70"> {cvv}</div>
+                <div className="text-[13px]" style={{ direction: "ltr" }}>
+                  {" "}
+                  {cvv}
+                </div>
                 <div className="flex items-center justify-center gap-1">
                   <div
                     className="font-bold text-base"
